@@ -1,77 +1,85 @@
 import {
-  IsString,
-  IsNotEmpty,
-  IsNumber,
-  Min,
-  Max,
-  IsInt,
   IsEnum,
+  IsInt,
+  IsNumber,
   IsOptional,
+  IsString,
+  Max,
+  Min,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { RecordFormat, RecordCategory } from '../schemas/record.enum';
+import { RecordFormat, RecordCategory } from '../../schemas/record.enum';
 
-export class CreateRecordRequestDTO {
+export class UpdateRecordRequestDTO {
   @ApiProperty({
     description: 'Artist of the record',
     type: String,
     example: 'The Beatles',
+    required: false,
   })
   @IsString()
-  @IsNotEmpty()
-  artist: string;
+  @IsOptional()
+  artist?: string;
 
   @ApiProperty({
     description: 'Album name',
     type: String,
     example: 'Abbey Road',
+    required: false,
   })
   @IsString()
-  @IsNotEmpty()
-  album: string;
+  @IsOptional()
+  album?: string;
 
   @ApiProperty({
     description: 'Price of the record',
     type: Number,
     example: 30,
+    required: false,
   })
   @IsNumber()
   @Min(0)
   @Max(10000)
-  price: number;
+  @IsOptional()
+  price?: number;
 
   @ApiProperty({
     description: 'Quantity of the record in stock',
     type: Number,
-    example: 1000,
+    example: 100,
+    required: false,
   })
   @IsInt()
   @Min(0)
   @Max(100)
-  qty: number;
+  @IsOptional()
+  qty?: number;
 
   @ApiProperty({
     description: 'Format of the record (Vinyl, CD, etc.)',
     enum: RecordFormat,
     example: RecordFormat.VINYL,
+    required: false,
   })
   @IsEnum(RecordFormat)
-  @IsNotEmpty()
-  format: RecordFormat;
+  @IsOptional()
+  format?: RecordFormat;
 
   @ApiProperty({
     description: 'Category or genre of the record (e.g., Rock, Jazz)',
     enum: RecordCategory,
     example: RecordCategory.ROCK,
+    required: false,
   })
   @IsEnum(RecordCategory)
-  @IsNotEmpty()
-  category: RecordCategory;
+  @IsOptional()
+  category?: RecordCategory;
 
   @ApiProperty({
     description: 'Musicbrainz identifier',
     type: String,
     example: 'b10bbbfc-cf9e-42e0-be17-e2c3e1d2600d',
+    required: false,
   })
   @IsOptional()
   mbid?: string;

@@ -1,35 +1,31 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RecordController } from './record.controller';
-import { getModelToken } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Record as RecordDocument } from '../schemas/record.schema';
-import { CreateRecordRequestDTO } from '../dtos/create-record.request.dto';
+import { CreateRecordRequestDTO } from '../dtos/request/create-record.request.dto';
 import { RecordCategory, RecordFormat } from '../schemas/record.enum';
+import { RecordService } from '../services/record.service';
+import { GetRecordsQueryDTO } from '../dtos/request/get-records.query.dto';
 
 describe('RecordController', () => {
   let recordController: RecordController;
-  let recordModel: Model<RecordDocument>;
+  let recordService: RecordService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [RecordController],
       providers: [
         {
-          provide: getModelToken('Record'),
+          provide: RecordService,
           useValue: {
-            new: jest.fn().mockResolvedValue({}),
-            constructor: jest.fn().mockResolvedValue({}),
-            find: jest.fn(),
-            findById: jest.fn(),
-            save: jest.fn(),
-            create: jest.fn(),
+            createRecord: jest.fn(),
+            updateRecord: jest.fn(),
+            searchRecords: jest.fn(),
           },
         },
       ],
     }).compile();
 
     recordController = module.get<RecordController>(RecordController);
-    recordModel = module.get<Model<RecordDocument>>(getModelToken('Record'));
+    recordService = module.get<RecordService>(RecordService);
   });
 
   it('should create a new record', async () => {
@@ -49,18 +45,13 @@ describe('RecordController', () => {
       qty: 10,
     };
 
-    jest.spyOn(recordModel, 'create').mockResolvedValue(savedRecord as any);
+    jest
+      .spyOn(recordService, 'createRecord')
+      .mockResolvedValue(savedRecord as any);
 
     const result = await recordController.create(createRecordDto);
     expect(result).toEqual(savedRecord);
-    expect(recordModel.create).toHaveBeenCalledWith({
-      artist: 'Test',
-      album: 'Test Record',
-      price: 100,
-      qty: 10,
-      category: RecordCategory.ALTERNATIVE,
-      format: RecordFormat.VINYL,
-    });
+    expect(recordService.createRecord).toHaveBeenCalledWith(createRecordDto);
   });
 
   it('should return an array of records', async () => {
@@ -69,23 +60,20 @@ describe('RecordController', () => {
       { _id: '2', name: 'Record 2', price: 200, qty: 20 },
     ];
 
-    // Mongoose query chaining returns the same query instance.
-    const query = {
-      skip: jest.fn(),
-      limit: jest.fn(),
-      lean: jest.fn(),
-      sort: jest.fn(),
-      exec: jest.fn().mockResolvedValue(records),
-    };
-    query.skip.mockReturnValue(query);
-    query.limit.mockReturnValue(query);
-    query.lean.mockReturnValue(query);
-    query.sort.mockReturnValue(query);
+    jest
+      .spyOn(recordService, 'searchRecords')
+      .mockResolvedValue(records as any);
 
-    jest.spyOn(recordModel, 'find').mockReturnValue(query as any);
-
-    const result = await recordController.findAll();
+    const result = await recordController.findAll({} as GetRecordsQueryDTO);
     expect(result).toEqual(records);
-    expect(recordModel.find).toHaveBeenCalledWith({});
+    expect(recordService.searchRecords).toHaveBeenCalledWith({
+      q: undefined,
+      artist: undefined,
+      album: undefined,
+      format: undefined,
+      category: undefined,
+      page: 1,
+      limit: 20,
+    });
   });
 });
