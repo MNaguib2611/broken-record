@@ -2,13 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { RecordController } from './record.controller';
 import { getModelToken } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Record } from '../schemas/record.schema';
+import { Record as RecordDocument } from '../schemas/record.schema';
 import { CreateRecordRequestDTO } from '../dtos/create-record.request.dto';
 import { RecordCategory, RecordFormat } from '../schemas/record.enum';
 
 describe('RecordController', () => {
   let recordController: RecordController;
-  let recordModel: Model<Record>;
+  let recordModel: Model<RecordDocument>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -29,7 +29,7 @@ describe('RecordController', () => {
     }).compile();
 
     recordController = module.get<RecordController>(RecordController);
-    recordModel = module.get<Model<Record>>(getModelToken('Record'));
+    recordModel = module.get<Model<RecordDocument>>(getModelToken('Record'));
   });
 
   it('should create a new record', async () => {
@@ -69,12 +69,23 @@ describe('RecordController', () => {
       { _id: '2', name: 'Record 2', price: 200, qty: 20 },
     ];
 
-    jest.spyOn(recordModel, 'find').mockReturnValue({
+    // Mongoose query chaining returns the same query instance.
+    const query = {
+      skip: jest.fn(),
+      limit: jest.fn(),
+      lean: jest.fn(),
+      sort: jest.fn(),
       exec: jest.fn().mockResolvedValue(records),
-    } as any);
+    };
+    query.skip.mockReturnValue(query);
+    query.limit.mockReturnValue(query);
+    query.lean.mockReturnValue(query);
+    query.sort.mockReturnValue(query);
+
+    jest.spyOn(recordModel, 'find').mockReturnValue(query as any);
 
     const result = await recordController.findAll();
     expect(result).toEqual(records);
-    expect(recordModel.find).toHaveBeenCalled();
+    expect(recordModel.find).toHaveBeenCalledWith({});
   });
 });

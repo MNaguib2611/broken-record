@@ -9,7 +9,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Record } from '../schemas/record.schema';
+import { Record as RecordDocument } from '../schemas/record.schema';
 import { Model } from 'mongoose';
 import { ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { CreateRecordRequestDTO } from '../dtos/create-record.request.dto';
@@ -19,14 +19,16 @@ import { UpdateRecordRequestDTO } from '../dtos/update-record.request.dto';
 @Controller('records')
 export class RecordController {
   constructor(
-    @InjectModel('Record') private readonly recordModel: Model<Record>,
+    @InjectModel('Record') private readonly recordModel: Model<RecordDocument>,
   ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new record' })
   @ApiResponse({ status: 201, description: 'Record successfully created' })
   @ApiResponse({ status: 400, description: 'Bad Request' })
-  async create(@Body() request: CreateRecordRequestDTO): Promise<Record> {
+  async create(
+    @Body() request: CreateRecordRequestDTO,
+  ): Promise<RecordDocument> {
     return await this.recordModel.create({
       artist: request.artist,
       album: request.album,
@@ -45,7 +47,7 @@ export class RecordController {
   async update(
     @Param('id') id: string,
     @Body() updateRecordDto: UpdateRecordRequestDTO,
-  ): Promise<Record> {
+  ): Promise<RecordDocument> {
     const record = await this.recordModel.findById(id);
     if (!record) {
       throw new InternalServerErrorException('Record not found');
@@ -66,7 +68,7 @@ export class RecordController {
   @ApiResponse({
     status: 200,
     description: 'List of records',
-    type: [Record],
+    type: [RecordDocument],
   })
   @ApiQuery({
     name: 'q',
@@ -101,45 +103,46 @@ export class RecordController {
     enum: RecordCategory,
     type: String,
   })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Page number (default: 1)',
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Page size (default: 20, max: 100)',
+    type: Number,
+  })
   async findAll(
     @Query('q') q?: string,
     @Query('artist') artist?: string,
     @Query('album') album?: string,
     @Query('format') format?: RecordFormat,
     @Query('category') category?: RecordCategory,
-  ): Promise<Record[]> {
-    const allRecords = await this.recordModel.find().exec();
+    @Query('page') pageRaw?: string,
+    @Query('limit') limitRaw?: string,
+  ): Promise<RecordDocument[]> {
+    const page = Math.max(1, Number(pageRaw ?? 1) || 1);
+    const limit = Math.min(100, Math.max(1, Number(limitRaw ?? 20) || 20));
+    const skip = (page - 1) * limit;
 
-    const filteredRecords = allRecords.filter((record) => {
-      let match = true;
+    const filter: globalThis.Record<string, unknown> = {};
+    if (q) filter.$text = { $search: q };
+    if (artist) filter.artist = artist;
+    if (album) filter.album = album;
+    if (format) filter.format = format;
+    if (category) filter.category = category;
 
-      if (q) {
-        match =
-          match &&
-          (record.artist.includes(q) ||
-            record.album.includes(q) ||
-            record.category.includes(q));
-      }
+    const query = this.recordModel.find(filter).skip(skip).limit(limit).lean();
 
-      if (artist) {
-        match = match && record.artist.includes(artist);
-      }
+    if (q) {
+      query.sort({ score: { $meta: 'textScore' } });
+    } else {
+      query.sort({ createdAt: -1 });
+    }
 
-      if (album) {
-        match = match && record.album.includes(album);
-      }
-
-      if (format) {
-        match = match && record.format === format;
-      }
-
-      if (category) {
-        match = match && record.category === category;
-      }
-
-      return match;
-    });
-
-    return filteredRecords;
+    return (await query.exec()) as any;
   }
 }
