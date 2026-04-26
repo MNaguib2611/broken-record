@@ -155,4 +155,61 @@ describe('RecordController', () => {
       limit: 20,
     });
   });
+
+  it('should update a record and return DTO shape', async () => {
+    const updated = {
+      _id: '1',
+      artist: 'Test',
+      album: 'Updated',
+      price: 100,
+      qty: 10,
+      format: RecordFormat.VINYL,
+      category: RecordCategory.ROCK,
+      mbid: 'mbid',
+      created: new Date('2026-01-01T00:00:00.000Z'),
+      lastModified: new Date('2026-01-01T00:00:00.000Z'),
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+      tracklist: ['t1'],
+    };
+
+    jest.spyOn(recordService, 'updateRecord').mockResolvedValue(updated as any);
+
+    await expect(
+      recordController.update('1', { album: 'Updated' } as any),
+    ).resolves.toEqual({
+      _id: '1',
+      artist: 'Test',
+      album: 'Updated',
+      price: 100,
+      qty: 10,
+      format: RecordFormat.VINYL,
+      category: RecordCategory.ROCK,
+      mbid: 'mbid',
+      created: updated.created,
+      lastModified: updated.lastModified,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+      tracklist: ['t1'],
+    });
+    expect(recordService.updateRecord).toHaveBeenCalledWith('1', {
+      album: 'Updated',
+    });
+  });
+
+  it('passes pagination params from query DTO', async () => {
+    jest.spyOn(recordService, 'searchRecords').mockResolvedValue([] as any);
+
+    await recordController.findAll({ page: 2, limit: 5 } as any);
+
+    expect(recordService.searchRecords).toHaveBeenCalledWith({
+      q: undefined,
+      artist: undefined,
+      album: undefined,
+      format: undefined,
+      category: undefined,
+      page: 2,
+      limit: 5,
+    });
+  });
 });
