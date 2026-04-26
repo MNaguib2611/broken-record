@@ -2,6 +2,22 @@ import { ApiProperty } from '@nestjs/swagger';
 import { RecordCategory, RecordFormat } from '../../schemas/record.enum';
 
 export class RecordResponseDTO {
+  constructor(record: any) {
+    this._id = String(record._id);
+    this.artist = record.artist;
+    this.album = record.album;
+    this.price = record.price;
+    this.qty = record.qty;
+    this.format = record.format;
+    this.category = record.category;
+    this.mbid = record.mbid;
+    this.created = record.created;
+    this.lastModified = record.lastModified;
+    this.createdAt = record.createdAt;
+    this.updatedAt = record.updatedAt;
+    this.tracklist = Array.isArray(record.tracklist) ? record.tracklist : [];
+  }
+
   @ApiProperty({ example: '69ee05c6f02dcb5282c053a4' })
   _id: string;
 
@@ -41,7 +57,6 @@ export class RecordResponseDTO {
   @ApiProperty({ type: String, format: 'date-time' })
   updatedAt: Date;
 
-  @ApiProperty({ example: 0 })
-  __v: number;
+  @ApiProperty({ type: [String], example: ['Come Together', 'Something'] })
+  tracklist: string[];
 }
-

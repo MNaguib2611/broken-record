@@ -82,6 +82,7 @@ export class RecordService {
 
     return record;
   }
+
   async searchRecords(params: {
     q?: string;
     artist?: string;

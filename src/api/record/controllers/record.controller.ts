@@ -1,11 +1,10 @@
 import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CreateRecordRequestDTO } from '../dtos/request/create-record.request.dto';
-import { UpdateRecordRequestDTO } from '../dtos/request/update-record.request.dto';
-import { RecordService } from '../services/record.service';
 import { GetRecordsQueryDTO } from '../dtos/request/get-records.query.dto';
+import { UpdateRecordRequestDTO } from '../dtos/request/update-record.request.dto';
 import { RecordResponseDTO } from '../dtos/response/record.response.dto';
-import { Record as RecordEntity } from '../schemas/record.schema';
+import { RecordService } from '../services/record.service';
 
 @Controller('records')
 export class RecordController {
@@ -19,8 +18,11 @@ export class RecordController {
     type: RecordResponseDTO,
   })
   @ApiResponse({ status: 400, description: 'Bad Request' })
-  async create(@Body() request: CreateRecordRequestDTO): Promise<RecordEntity> {
-    return this.recordService.createRecord(request);
+  async create(
+    @Body() request: CreateRecordRequestDTO,
+  ): Promise<RecordResponseDTO> {
+    const record = await this.recordService.createRecord(request);
+    return new RecordResponseDTO(record);
   }
 
   @Put(':id')
@@ -34,8 +36,9 @@ export class RecordController {
   async update(
     @Param('id') id: string,
     @Body() updateRecordDto: UpdateRecordRequestDTO,
-  ): Promise<RecordEntity> {
-    return this.recordService.updateRecord(id, updateRecordDto);
+  ): Promise<RecordResponseDTO> {
+    const record = await this.recordService.updateRecord(id, updateRecordDto);
+    return new RecordResponseDTO(record);
   }
 
   @Get()
@@ -45,11 +48,13 @@ export class RecordController {
     description: 'List of records',
     type: [RecordResponseDTO],
   })
-  async findAll(@Query() query: GetRecordsQueryDTO): Promise<RecordEntity[]> {
+  async findAll(
+    @Query() query: GetRecordsQueryDTO,
+  ): Promise<RecordResponseDTO[]> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
 
-    return this.recordService.searchRecords({
+    const records = await this.recordService.searchRecords({
       q: query.q,
       artist: query.artist,
       album: query.album,
@@ -58,5 +63,6 @@ export class RecordController {
       page,
       limit,
     });
+    return records.map((r) => new RecordResponseDTO(r));
   }
 }
