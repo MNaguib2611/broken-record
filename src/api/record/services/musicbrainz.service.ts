@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { XMLParser } from 'fast-xml-parser';
 
 type Track = { title: string };
 
 @Injectable()
 export class MusicBrainzService {
+  private readonly logger = new Logger(MusicBrainzService.name);
   private readonly parser = new XMLParser({
     ignoreAttributes: false,
     attributeNamePrefix: '@_',
@@ -31,6 +32,9 @@ export class MusicBrainzService {
       return this.extractTracklistFromReleaseXml(xml);
     } catch {
       // Fail open: upstream outages shouldn't block record writes.
+      this.logger.warn(
+        `MusicBrainz request failed for release mbid=${releaseMbid}`,
+      );
       return null;
     }
   }

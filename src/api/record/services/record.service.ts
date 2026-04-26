@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { CreateRecordRequestDTO } from '../dtos/request/create-record.request.dto';
@@ -9,6 +9,7 @@ import { MusicBrainzService } from './musicbrainz.service';
 
 @Injectable()
 export class RecordService {
+  private readonly logger = new Logger(RecordService.name);
   constructor(
     @InjectModel(RecordEntity.name)
     private readonly recordModel: Model<RecordEntity>,
@@ -25,6 +26,9 @@ export class RecordService {
         if (tracks) tracklist = tracks.map((t) => t.title);
       } catch {
         // Fail open: record creation should succeed even if MusicBrainz is unavailable.
+        this.logger.warn(
+          `Failed to enrich tracklist from MusicBrainz for mbid=${request.mbid}`,
+        );
         tracklist = [];
       }
     }
@@ -47,7 +51,7 @@ export class RecordService {
   ): Promise<RecordEntity> {
     const record = await this.recordModel.findById(id);
     if (!record) {
-      throw new InternalServerErrorException('Record not found');
+      throw new NotFoundException('Record not found');
     }
 
     const previousMbid = record.mbid;
@@ -70,17 +74,15 @@ export class RecordService {
           record.tracklist = tracks ? tracks.map((t) => t.title) : [];
         } catch {
           // Fail open: preserve update semantics even if MusicBrainz is unavailable.
+          this.logger.warn(
+            `Failed to refresh tracklist from MusicBrainz for mbid=${updateRecordDto.mbid}`,
+          );
           record.tracklist = [];
         }
       }
     }
 
-    const updated = await this.recordModel.updateOne(record);
-    if (!updated) {
-      throw new InternalServerErrorException('Failed to update record');
-    }
-
-    return record;
+    return await record.save();
   }
 
   async searchRecords(params: {

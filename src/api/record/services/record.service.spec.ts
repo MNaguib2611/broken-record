@@ -4,7 +4,9 @@ import { RecordCategory, RecordFormat } from '../schemas/record.enum';
 
 describe('RecordService', () => {
   it('creates a record with empty tracklist when mbid is missing', async () => {
-    const recordModel: any = { create: jest.fn().mockResolvedValue({ _id: '1' }) };
+    const recordModel: any = {
+      create: jest.fn().mockResolvedValue({ _id: '1' }),
+    };
     const musicBrainz: any = { getTracklistByReleaseMbid: jest.fn() };
 
     const service = new RecordService(
@@ -28,15 +30,19 @@ describe('RecordService', () => {
   });
 
   it('fetches tracklist on create when mbid is provided', async () => {
-    const recordModel: any = { create: jest.fn().mockResolvedValue({ _id: '1' }) };
+    const recordModel: any = {
+      create: jest.fn().mockResolvedValue({ _id: '1' }),
+    };
     const musicBrainz: any = {
-      getTracklistByReleaseMbid: jest.fn().mockResolvedValue([
-        { title: 't1' },
-        { title: 't2' },
-      ]),
+      getTracklistByReleaseMbid: jest
+        .fn()
+        .mockResolvedValue([{ title: 't1' }, { title: 't2' }]),
     };
 
-    const service = new RecordService(recordModel, musicBrainz as MusicBrainzService);
+    const service = new RecordService(
+      recordModel,
+      musicBrainz as MusicBrainzService,
+    );
 
     await service.createRecord({
       artist: 'A',
@@ -55,7 +61,9 @@ describe('RecordService', () => {
   });
 
   it('fails open on create when MusicBrainz throws', async () => {
-    const recordModel: any = { create: jest.fn().mockResolvedValue({ _id: '1' }) };
+    const recordModel: any = {
+      create: jest.fn().mockResolvedValue({ _id: '1' }),
+    };
     const musicBrainz: any = {
       getTracklistByReleaseMbid: jest.fn().mockRejectedValue(new Error('down')),
     };
@@ -81,22 +89,29 @@ describe('RecordService', () => {
   });
 
   it('refetches tracklist only when mbid changes on update', async () => {
-    const record = {
+    const record: any = {
       _id: '1',
       mbid: 'old',
       tracklist: ['oldTrack'],
+      save: jest.fn().mockImplementation(async function () {
+        return this;
+      }),
     };
 
     const recordModel: any = {
       findById: jest.fn().mockResolvedValue(record),
-      updateOne: jest.fn().mockResolvedValue({ acknowledged: true }),
     };
 
     const musicBrainz: any = {
-      getTracklistByReleaseMbid: jest.fn().mockResolvedValue([{ title: 'newTrack' }]),
+      getTracklistByReleaseMbid: jest
+        .fn()
+        .mockResolvedValue([{ title: 'newTrack' }]),
     };
 
-    const service = new RecordService(recordModel, musicBrainz as MusicBrainzService);
+    const service = new RecordService(
+      recordModel,
+      musicBrainz as MusicBrainzService,
+    );
 
     // MBID omitted → should not refetch.
     await service.updateRecord('1', { price: 20 } as any);
@@ -113,10 +128,16 @@ describe('RecordService', () => {
   });
 
   it('clears tracklist when mbid is removed', async () => {
-    const record = { _id: '1', mbid: 'old', tracklist: ['t'] };
+    const record: any = {
+      _id: '1',
+      mbid: 'old',
+      tracklist: ['t'],
+      save: jest.fn().mockImplementation(async function () {
+        return this;
+      }),
+    };
     const recordModel: any = {
       findById: jest.fn().mockResolvedValue(record),
-      updateOne: jest.fn().mockResolvedValue({ acknowledged: true }),
     };
     const musicBrainz: any = { getTracklistByReleaseMbid: jest.fn() };
 
@@ -135,10 +156,16 @@ describe('RecordService', () => {
   });
 
   it('fails open on update when MusicBrainz throws', async () => {
-    const record = { _id: '1', mbid: 'old', tracklist: ['t'] };
+    const record: any = {
+      _id: '1',
+      mbid: 'old',
+      tracklist: ['t'],
+      save: jest.fn().mockImplementation(async function () {
+        return this;
+      }),
+    };
     const recordModel: any = {
       findById: jest.fn().mockResolvedValue(record),
-      updateOne: jest.fn().mockResolvedValue({ acknowledged: true }),
     };
     const musicBrainz: any = {
       getTracklistByReleaseMbid: jest.fn().mockRejectedValue(new Error('down')),
@@ -180,10 +207,9 @@ describe('RecordService', () => {
       find: jest.fn().mockReturnValue(query),
     };
 
-    const service = new RecordService(
-      recordModel,
-      { getTracklistByReleaseMbid: jest.fn() } as any,
-    );
+    const service = new RecordService(recordModel, {
+      getTracklistByReleaseMbid: jest.fn(),
+    } as any);
 
     await service.searchRecords({
       q: 'beatles',
@@ -208,4 +234,3 @@ describe('RecordService', () => {
     expect(exec).toHaveBeenCalled();
   });
 });
-

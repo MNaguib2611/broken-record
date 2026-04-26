@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { Connection, Model, Types } from 'mongoose';
 import { CreateOrderRequestDTO } from '../dtos/request/create-order.request.dto';
@@ -7,6 +12,7 @@ import { Record } from '../../record/schemas/record.schema';
 
 @Injectable()
 export class OrderService {
+  private readonly logger = new Logger(OrderService.name);
   constructor(
     @InjectConnection()
     private readonly connection: Connection,
@@ -31,6 +37,10 @@ export class OrderService {
         );
 
         if (!record) {
+          const existing = await this.recordModel
+            .findById(recordObjectId)
+            .session(session);
+          if (!existing) throw new NotFoundException('Record not found');
           throw new BadRequestException('Insufficient inventory');
         }
 
@@ -56,6 +66,11 @@ export class OrderService {
       }
 
       return createdOrder;
+    } catch (err) {
+      this.logger.warn(
+        `Order creation failed recordId=${request.recordId} qty=${request.quantity}`,
+      );
+      throw err;
     } finally {
       await session.endSession();
     }

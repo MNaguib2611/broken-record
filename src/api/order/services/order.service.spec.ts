@@ -15,6 +15,9 @@ describe('OrderService', () => {
     const orderModel: any = { create: jest.fn() };
     const recordModel: any = {
       findOneAndUpdate: jest.fn().mockResolvedValue(null),
+      findById: jest.fn().mockReturnValue({
+        session: jest.fn().mockResolvedValue({ _id: 'r1', qty: 1, price: 10 }),
+      }),
     };
 
     const service = new OrderService(connection, orderModel, recordModel);
