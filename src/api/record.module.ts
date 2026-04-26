@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { RecordController } from './controllers/record.controller';
 import { RecordService } from './services/record.service';
+import { MusicBrainzService } from './services/musicbrainz.service';
 import { RecordSchema } from './schemas/record.schema';
 
 @Module({
@@ -9,6 +10,6 @@ import { RecordSchema } from './schemas/record.schema';
     MongooseModule.forFeature([{ name: 'Record', schema: RecordSchema }]),
   ],
   controllers: [RecordController],
-  providers: [RecordService],
+  providers: [RecordService, MusicBrainzService],
 })
 export class RecordModule {}

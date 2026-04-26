@@ -5,15 +5,30 @@ import { CreateRecordRequestDTO } from '../dtos/request/create-record.request.dt
 import { UpdateRecordRequestDTO } from '../dtos/request/update-record.request.dto';
 import { RecordCategory, RecordFormat } from '../schemas/record.enum';
 import { Record as RecordEntity } from '../schemas/record.schema';
+import { MusicBrainzService } from './musicbrainz.service';
 
 @Injectable()
 export class RecordService {
   constructor(
     @InjectModel(RecordEntity.name)
     private readonly recordModel: Model<RecordEntity>,
+    private readonly musicBrainzService: MusicBrainzService,
   ) {}
 
   async createRecord(request: CreateRecordRequestDTO): Promise<RecordEntity> {
+    let tracklist: string[] = [];
+    if (request.mbid) {
+      try {
+        const tracks = await this.musicBrainzService.getTracklistByReleaseMbid(
+          request.mbid,
+        );
+        if (tracks) tracklist = tracks.map((t) => t.title);
+      } catch {
+        // Fail open: record creation should succeed even if MusicBrainz is unavailable.
+        tracklist = [];
+      }
+    }
+
     return await this.recordModel.create({
       artist: request.artist,
       album: request.album,
@@ -22,6 +37,7 @@ export class RecordService {
       format: request.format,
       category: request.category,
       mbid: request.mbid,
+      tracklist,
     });
   }
 
@@ -34,7 +50,30 @@ export class RecordService {
       throw new InternalServerErrorException('Record not found');
     }
 
+    const previousMbid = record.mbid;
     Object.assign(record, updateRecordDto);
+
+    // Only refetch tracklist when mbid is explicitly changed (avoid extra network calls on other updates).
+    const mbidChanged =
+      updateRecordDto.mbid !== undefined &&
+      updateRecordDto.mbid !== previousMbid;
+
+    if (mbidChanged) {
+      if (!updateRecordDto.mbid) {
+        record.tracklist = [];
+      } else {
+        try {
+          const tracks =
+            await this.musicBrainzService.getTracklistByReleaseMbid(
+              updateRecordDto.mbid,
+            );
+          record.tracklist = tracks ? tracks.map((t) => t.title) : [];
+        } catch {
+          // Fail open: preserve update semantics even if MusicBrainz is unavailable.
+          record.tracklist = [];
+        }
+      }
+    }
 
     const updated = await this.recordModel.updateOne(record);
     if (!updated) {

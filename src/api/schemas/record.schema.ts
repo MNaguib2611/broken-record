@@ -30,6 +30,9 @@ export class Record extends Document {
 
   @Prop({ required: false })
   mbid?: string;
+
+  @Prop({ type: [String], default: [] })
+  tracklist: string[];
 }
 
 export const RecordSchema = SchemaFactory.createForClass(Record);

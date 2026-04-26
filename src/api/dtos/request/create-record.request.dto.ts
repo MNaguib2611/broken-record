@@ -69,11 +69,12 @@ export class CreateRecordRequestDTO {
   category: RecordCategory;
 
   @ApiProperty({
-    description: 'Musicbrainz identifier',
+    description:
+      'MusicBrainz Release MBID (edition-level) used to fetch tracklist (XML)',
     type: String,
-    example: 'b10bbbfc-cf9e-42e0-be17-e2c3e1d2600d',
+    // example: 'b10bbbfc-cf9e-42e0-be17-e2c3e1d2600d', release group
+    example: 'd6010be3-98f8-422c-a6c9-787e2e491e58',
   })
   @IsOptional()
   mbid?: string;
 }
-

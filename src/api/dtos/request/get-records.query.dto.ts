@@ -73,4 +73,3 @@ export class GetRecordsQueryDTO {
   @Max(100)
   limit?: number;
 }
-
